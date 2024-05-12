@@ -33,7 +33,7 @@ headless = []
 async-collider = ["bevy/bevy_asset", "bevy/bevy_scene"]
 
 [dependencies]
-bevy = { version = "0.13", default-features = false }
+bevy = { git = "https://github.com/nzhao95/bevy", default-features = false }
 nalgebra = { version = "0.32.3", features = ["convert-glam025"] }
 rapier3d = "0.19"
 bitflags = "2.4"
