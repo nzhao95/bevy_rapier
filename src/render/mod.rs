@@ -112,7 +112,12 @@ impl<'world, 'state, 'a, 'b> BevyLinesRenderBackend<'world, 'state, 'a, 'b> {
             _ => None,
         };
 
-        color.map(|co| co.as_hsla_f32()).unwrap_or(default)
+        color
+            .map(|co| {
+                let hsla: Hsla = co.into();
+                [hsla.hue, hsla.saturation, hsla.lightness, hsla.alpha]
+            })
+            .unwrap_or(default)
     }
 }
 

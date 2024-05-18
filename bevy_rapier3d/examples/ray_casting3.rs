@@ -104,7 +104,7 @@ pub fn cast_ray(
             // Color in blue the entity we just hit.
             // Because of the query filter, only colliders attached to a dynamic body
             // will get an event.
-            let color = Color::BLUE;
+            let color = Color::linear_rgb(0.0, 0.0, 1.0);
             commands.entity(entity).insert(ColliderDebugColor(color));
         }
     }
