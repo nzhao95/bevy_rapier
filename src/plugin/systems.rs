@@ -1536,11 +1536,11 @@ mod tests {
         app.add_event::<CollisionEvent>()
             .add_systems(Update, update_colliding_entities);
 
-        let entity1 = app.world_mut().spawn(CollidingEntities::default()).id();
-        let entity2 = app.world_mut().spawn(CollidingEntities::default()).id();
+        let entity1 = app.world.spawn(CollidingEntities::default()).id();
+        let entity2 = app.world.spawn(CollidingEntities::default()).id();
 
         let mut collision_events = app
-            .world_mut()
+            .world
             .get_resource_mut::<Events<CollisionEvent>>()
             .unwrap();
         collision_events.send(CollisionEvent::Started(
@@ -1552,7 +1552,7 @@ mod tests {
         app.update();
 
         let colliding_entities1 = app
-            .world()
+            .world
             .entity(entity1)
             .get::<CollidingEntities>()
             .unwrap();
@@ -1568,7 +1568,7 @@ mod tests {
         );
 
         let colliding_entities2 = app
-            .world()
+            .world
             .entity(entity2)
             .get::<CollidingEntities>()
             .unwrap();
@@ -1584,7 +1584,7 @@ mod tests {
         );
 
         let mut collision_events = app
-            .world_mut()
+            .world
             .get_resource_mut::<Events<CollisionEvent>>()
             .unwrap();
         collision_events.send(CollisionEvent::Stopped(
@@ -1596,7 +1596,7 @@ mod tests {
         app.update();
 
         let colliding_entities1 = app
-            .world()
+            .world
             .entity(entity1)
             .get::<CollidingEntities>()
             .unwrap();
@@ -1606,7 +1606,7 @@ mod tests {
         );
 
         let colliding_entities2 = app
-            .world()
+            .world
             .entity(entity2)
             .get::<CollidingEntities>()
             .unwrap();
@@ -1623,14 +1623,14 @@ mod tests {
         app.add_plugins(HeadlessRenderPlugin)
             .add_systems(Update, init_async_colliders);
 
-        let mut meshes = app.world_mut().resource_mut::<Assets<Mesh>>();
+        let mut meshes = app.world.resource_mut::<Assets<Mesh>>();
         let cube = meshes.add(Cuboid::default());
 
-        let entity = app.world_mut().spawn((cube, AsyncCollider::default())).id();
+        let entity = app.world.spawn((cube, AsyncCollider::default())).id();
 
         app.update();
 
-        let entity = app.world().entity(entity);
+        let entity = app.world.entity(entity);
         assert!(
             entity.get::<Collider>().is_some(),
             "Collider component should be added"
@@ -1648,19 +1648,19 @@ mod tests {
         app.add_plugins(HeadlessRenderPlugin)
             .add_systems(PostUpdate, init_async_scene_colliders);
 
-        let mut meshes = app.world_mut().resource_mut::<Assets<Mesh>>();
+        let mut meshes = app.world.resource_mut::<Assets<Mesh>>();
         let cube_handle = meshes.add(Cuboid::default());
         let capsule_handle = meshes.add(Capsule3d::default());
-        let cube = app.world_mut().spawn((Name::new("Cube"), cube_handle)).id();
-        let capsule = app.world_mut().spawn((Name::new("Capsule"), capsule_handle)).id();
+        let cube = app.world.spawn((Name::new("Cube"), cube_handle)).id();
+        let capsule = app.world.spawn((Name::new("Capsule"), capsule_handle)).id();
 
-        let mut scenes = app.world_mut().resource_mut::<Assets<Scene>>();
+        let mut scenes = app.world.resource_mut::<Assets<Scene>>();
         let scene = scenes.add(Scene::new(World::new()));
 
         let mut named_shapes = bevy::utils::HashMap::new();
         named_shapes.insert("Capsule".to_string(), None);
         let parent = app
-            .world_mut()
+            .world
             .spawn((
                 scene,
                 AsyncSceneCollider {
@@ -1674,15 +1674,15 @@ mod tests {
         app.update();
 
         assert!(
-            app.world().entity(cube).get::<Collider>().is_some(),
+            app.world.entity(cube).get::<Collider>().is_some(),
             "Collider component should be added for cube"
         );
         assert!(
-            app.world().entity(capsule).get::<Collider>().is_none(),
+            app.world.entity(capsule).get::<Collider>().is_none(),
             "Collider component shouldn't be added for capsule"
         );
         assert!(
-            app.world().entity(parent).get::<AsyncCollider>().is_none(),
+            app.world.entity(parent).get::<AsyncCollider>().is_none(),
             "AsyncSceneCollider component should be removed after Collider components creation"
         );
     }
@@ -1716,7 +1716,7 @@ mod tests {
 
         for (child_transform, parent_transform) in [zero, same, different] {
             let child = app
-                .world_mut()
+                .world
                 .spawn((
                     TransformBundle::from(child_transform),
                     RigidBody::Fixed,
@@ -1724,14 +1724,14 @@ mod tests {
                 ))
                 .id();
 
-            app.world_mut()
+            app.world
                 .spawn(TransformBundle::from(parent_transform))
                 .push_children(&[child]);
 
             app.update();
 
-            let child_transform = app.world().entity(child).get::<GlobalTransform>().unwrap();
-            let context = app.world().resource::<RapierContext>();
+            let child_transform = app.world.entity(child).get::<GlobalTransform>().unwrap();
+            let context = app.world.resource::<RapierContext>();
             let child_handle = context.entity2body[&child];
             let child_body = context.bodies.get(child_handle).unwrap();
             let body_transform = utils::iso_to_transform(child_body.position());
@@ -1775,12 +1775,12 @@ mod tests {
 
         for (child_transform, parent_transform) in [zero, same, different] {
             let child = app
-                .world_mut()
+                .world
                 .spawn((TransformBundle::from(child_transform), Collider::ball(1.0)))
                 .id();
 
             let parent = app
-                .world_mut()
+                .world
                 .spawn((TransformBundle::from(parent_transform), RigidBody::Fixed))
                 .push_children(&[child])
                 .id();
@@ -1788,12 +1788,12 @@ mod tests {
             app.update();
 
             let child_transform = app
-                .world()
+                .world
                 .entity(child)
                 .get::<GlobalTransform>()
                 .unwrap()
                 .compute_transform();
-            let context = app.world().resource::<RapierContext>();
+            let context = app.world.resource::<RapierContext>();
             let parent_handle = context.entity2body[&parent];
             let parent_body = context.bodies.get(parent_handle).unwrap();
             let child_collider_handle = parent_body.colliders()[0];

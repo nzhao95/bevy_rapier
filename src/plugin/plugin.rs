@@ -2,12 +2,14 @@ use crate::pipeline::{CollisionEvent, ContactForceEvent};
 use crate::plugin::configuration::SimulationToRenderTime;
 use crate::plugin::{systems, RapierConfiguration, RapierContext};
 use crate::prelude::*;
-use bevy::ecs::{
-        event::{event_update_system, EventRegistry},
-        intern::Interned,
+use bevy::{
+    ecs::{
+        event::{event_update_system, Events},
         schedule::{ScheduleLabel, SystemConfigs},
         system::SystemParamItem,
-    };
+    },
+    utils::intern::Interned,
+};
 use bevy::{prelude::*, transform::TransformSystem};
 use rapier::dynamics::IntegrationParameters;
 use std::marker::PhantomData;
@@ -109,14 +111,17 @@ where
                 .into_configs(),
             PhysicsSet::StepSimulation => (
                 systems::step_simulation::<PhysicsHooks>,
-                event_update_system.before(systems::step_simulation::<PhysicsHooks>),
+                event_update_system::<CollisionEvent>
+                    .before(systems::step_simulation::<PhysicsHooks>),
+                event_update_system::<ContactForceEvent>
+                    .before(systems::step_simulation::<PhysicsHooks>),
             )
                 .into_configs(),
             PhysicsSet::Writeback => (
                 systems::update_colliding_entities,
                 systems::writeback_rigid_bodies,
                 systems::writeback_mass_properties,
-                event_update_system.after(systems::writeback_mass_properties),
+                event_update_system::<MassModifiedEvent>.after(systems::writeback_mass_properties),
             )
                 .into_configs(),
         }
@@ -196,11 +201,10 @@ where
                     ..Default::default()
                 },
                 ..Default::default()
-            });
-
-        EventRegistry::register_event::<CollisionEvent>(app.world_mut());
-        EventRegistry::register_event::<ContactForceEvent>(app.world_mut());
-        EventRegistry::register_event::<MassModifiedEvent>(app.world_mut());
+            })
+            .insert_resource(Events::<CollisionEvent>::default())
+            .insert_resource(Events::<ContactForceEvent>::default())
+            .insert_resource(Events::<MassModifiedEvent>::default());
 
         // Insert all of our required resources. Don’t overwrite
         // the `RapierConfiguration` if it already exists.
@@ -237,7 +241,7 @@ where
 
             // Warn user if the timestep mode isn't in Fixed
             if self.schedule.as_dyn_eq().dyn_eq(FixedUpdate.as_dyn_eq()) {
-                let config = app.world().resource::<RapierConfiguration>();
+                let config = app.world.resource::<RapierConfiguration>();
                 match config.timestep_mode {
                     TimestepMode::Fixed { .. } => {}
                     mode => {
